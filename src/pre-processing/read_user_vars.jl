@@ -28,7 +28,6 @@ function read_user_vars(
         ty -> 0.0*ty^0.0 ==> Does not work when trying to extract Uy from freestream.
         I believe that this is due the fact that implicit functions cannot be zero out (t -> t*0.0 ==> WRONG).
         Hence just assign Uy = t -> 0.0, if ykey == false.
-
         =#
     else
         Uy = freestream.Uy
