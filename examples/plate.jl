@@ -2,10 +2,22 @@ include("../src/IBPM.jl")
 using .IBPM
 
 
-# User optional variables
+# User requiered variables
 
-Δt = 0.007
-Δx = 0.02
+Re = 100.0
 
-T  = 1.0
-mg = 5
+
+# User optional variables (uncomment below if you want to define them)
+
+# dx = 0.02
+# dt = 0.004
+# T  = 1.0
+
+dx = missing
+dt = missing
+T = missing
+
+Ux = t -> t^0.0
+freestream = (Ux = Ux,)
+
+dx, freestream, dt, T = read_user_vars((Ux = t-> t^0.0,), missing, missing, Re, missing)
