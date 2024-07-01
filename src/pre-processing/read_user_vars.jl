@@ -1,4 +1,31 @@
-function read_user_vars(
+"""
+    ReadUserVars(freestream::NamedTuple, dx::Union{Missing,Float64}, dt::Union{Missing,Float64}, Re::Float64, T::Union{Missing,Float64})
+
+This function processes input parameters and returns computed values for `dx`, `freestream`, `dt`, and `T`.
+
+# Arguments
+- `freestream::NamedTuple`: A named tuple containing the freestream values (`Ux`, `Uy`, `inclination`).
+- `dx::Union{Missing, Float64}`: Spatial step size, which may be provided or missing.
+- `dt::Union{Missing, Float64}`: Time step size, which may be provided or missing.
+- `Re::Float64`: Reynolds number.
+- `T::Union{Missing, Float64}`: Final simulation time, which may be provided or missing.
+
+# Returns
+- `dx::Float64`: Computed or provided spatial step size.
+- `freestream::NamedTuple`: Updated freestream named tuple containing functions for `Ux`, `Uy`, and `inclination`.
+- `dt::Float64`: Computed or provided time step size.
+- `T::Float64`: Computed or provided final simulation time.
+
+# Details
+1. The function checks if `Ux`, `Uy`, and `inclination` are present in the `freestream` named tuple.
+    - If not, defaults to constant values (1.0 for `Ux`, 0.0 for `Uy` and `inclination`).
+2. Sets `dx` to `2.0/Re` if `dx` is missing.
+3. Computes `dt` based on the maximum velocity in `freestream` if `dt` is missing.
+    - If `T` is provided, uses it for the computation of `Umax`.
+    - If `T` is missing, sets `T` to `20.0 * dt`.
+
+"""
+function ReadUserVars(
     freestream::NamedTuple,
     dx::Union{Missing,Float64},
     dt::Union{Missing,Float64},

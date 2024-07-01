@@ -1,6 +1,6 @@
 #= 
 
-Include in IBPM module the scripts found in the pre-processing directory
+Include in FronteiraImersa module the scripts found in the pre-processing directory
 
 =#
 

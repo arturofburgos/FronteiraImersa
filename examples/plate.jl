@@ -1,5 +1,5 @@
-include("../src/IBPM.jl")
-using .IBPM
+include("../src/FronteiraImersa.jl")
+using .FronteiraImersa
 
 
 # User requiered variables
@@ -20,4 +20,8 @@ T = missing
 Ux = t -> t^0.0
 freestream = (Ux = Ux,)
 
-dx, freestream, dt, T = read_user_vars((Ux = t-> t^0.0,), missing, missing, Re, missing)
+dx, freestream, dt, T = ReadUserVars((Ux = t-> t^0.0,), missing, missing, Re, missing)
+
+dx = 0.1
+boundary = (0.0, 1.0, 0.0, 1.0)
+grid = MakeGrid(dx, boundary)
