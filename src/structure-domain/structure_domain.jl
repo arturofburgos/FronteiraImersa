@@ -59,3 +59,30 @@ function MakeBody(body_idx, h)
 
     return bodies
 end
+
+# TODO: Check the same function displayed in a more concise and efficient way
+# function MakeBody(body_idx, h)
+#     # Initialize an empty array to store the bodies
+#     bodies = RigidBody{Static}[]
+
+#     # Iterate over each body specification
+#     for body_j in body_idx
+#         # Determine the motion type, default to Static if not specified
+#         motion = get(body_j, :motion, :static) == :static ? Static() : Static() # Placeholder for future motion types
+
+#         # Determine the center of the body, default to [0.0, 0.0] if not specified
+#         center = get(body_j, :center, [0.0, 0.0])
+
+#         # Create the body based on the type and other specifications
+#         if body_j.type == :plate
+#             body = MakePlate(body_j[:lengthscale], body_j[:alpha], h, center[1], center[2]; motion=motion)
+#         else
+#             throw(ArgumentError("Unsupported body type: $(body_j.type)"))
+#         end
+
+#         # Add the created body to the bodies array
+#         push!(bodies, body)
+#     end
+
+#     return bodies
+# end
