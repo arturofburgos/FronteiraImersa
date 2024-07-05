@@ -81,7 +81,7 @@ end
 #=
 TODO: Check with Professor Andres is the variable supp stands for support (in this case 6 as it seems to be for the δ function support).
 =#
-function SetupReg(grid::T, bodies::Array{<:Body, 1}; supp = 6) where T <:Grid
+function SetupReg(grid::T, bodies::Array{<:Body, 1}; supp = 3) where T <:Grid
     
     # Extract the sizes of the fluid staggered grid
     nx = grid.nx
@@ -93,6 +93,49 @@ function SetupReg(grid::T, bodies::Array{<:Body, 1}; supp = 6) where T <:Grid
     nb = size(xb,1) # total number of body points (considering all of the bodies since we stack them in the previous code line)
     nf = 2*nb # total number of forces in the body points. Remember that each body will have a x and y force component
  
-    supp_idx = -supp:supp # TODO: ask Nick if shouldn't be -supp
+    supp_idx = -supp:supp # I believe I was right, since the above delta function covers up to 6*h then support(supp) goes from -3:3
+    weight = zeros(nf, 2, 2*supp+1, 2*supp+1) 
+
+    # Nearest indices of body relative to grid
+    body_idx = zeros(Int, size(xb)) # create the body indices vector
+    # Now, represent the body according to the nearest fluid grid indices
+    body_idx[:, 1] = @. Int(floor((xb[:, 1] + grid.offx) / h)) #TODO: Check with Nick if I should round by floor or I can simply use Int.
+    body_idx[:, 2] = @. Int(floor((xb[:, 2] + grid.offy) / h)) # the offset here is important since the grid normally starts from a negative value,
+    # then, with the sum of the offset we deal with only positive numbers making it easier to work. Note that, the next part of the function does
+    # the opposite where subtracting the offset we deal now with the actual fluid coordinates.
+
+    # Now, convert the body_indices (in the fluid grid "basis") and get regularized weight - or contributions - near IB points (u and v velocity points)
+    for k = 1:nb
+        x = @. h*(body_idx[k, 1] - 1 + supp_idx) - grid.offx # grid location x support region for each body point 
+        y = @. h*(body_idx[k, 2] - 1 + supp_idx) - grid.offy # grid location y support region for each body point
+
+        # TODO: Check with Nick if the above -1 is necessary (personally I dont think it is, and I think it is wrong) and it is related to the floor function above
+        # x = @. h*(body_idx[k, 1] + supp_idx) - grid.offx 
+        # y = @. h*(body_idx[k, 2] + supp_idx) - grid.offy
+
+        # Weight for each velocity (since the u_k is the velocity for each body point, see Taira 2007, https://doi.org/10.1016/j.jcp.2007.03.005)
+        #=
+        Note that for the u-component of velocity, the first delta function is with respect to x and the second one with respect to y
+                |y0 + h            |
+        u_vel-->|y0 + h/2       -->|
+                |y0                |
+                x0                 x0+h
+
+        The above scheme exemplifies that the final weight for the u component in the body point (and vice-versa) is going to be the product of 
+        the weight in x and the weight in y + h/2, since in a staggered grid this is how u_vel is disposed 
+        =#
+        @. weight[k, 1, :, :] = δh(x, xb[k, 1], h) * δh(y+h/2, xb[k, 2], h)
+        @. weight[k, 2, :, :] = δh(x+h/2, xb[k, 1], h) * δh(y, xb[k, 2], h)
+    end
+    #TODO: finish SetupReg function.
+
+
+
+
+
+end
+
+
+
 
 
