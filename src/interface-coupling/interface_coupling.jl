@@ -79,8 +79,30 @@ end
 # Note that one is the transpose of the other, hence H = -E^t or E = -H^t. 
 
 #=
-TODO: Check with Professor Andres is the variable supp stands for support (in this case 6 as it seems to be for the δ function support).
+    supp stands for support. defined by the δ function above (in this case 3 for each size)
 =#
+"""
+    SetupReg(grid::T, bodies::Array{<:Body, 1}; supp=3) where T <: Grid
+
+Sets up the regularization operators for a fluid-structure interaction simulation. This includes computing the weights used to interpolate forces and velocities between the fluid grid and the immersed boundary (IB) points.
+
+# Arguments
+- `grid::T`: The fluid grid on which the simulation is performed. It should be a subtype of `Grid` and contain grid dimensions `nx`, `ny`, cell size `h`, and offset values `offx` and `offy`.
+- `bodies::Array{<:Body, 1}`: An array of body objects, each containing the body points `xb`.
+- `supp::Int`: The support size for the regularization function. Default is 3.
+
+# Returns
+- `E`: A `LinearMap` object representing the regularization operators `Reg!` and `RegT!`.
+
+# Functionality
+1. Extracts grid dimensions and cell size.
+2. Stacks all body points from the input bodies.
+3. Computes the nearest grid indices for each body point.
+4. Computes the regularization weights for each body point within the support region.
+5. Defines two functions: `RegT!` to distribute forces from body points to grid points and `Reg!` to compute forces at body points from grid forces.
+6. Returns a `LinearMap` object `E` encapsulating the regularization operators.
+
+"""
 function SetupReg(grid::T, bodies::Array{<:Body, 1}; supp = 3) where T <:Grid
     
     # Extract the sizes of the fluid staggered grid
@@ -127,15 +149,115 @@ function SetupReg(grid::T, bodies::Array{<:Body, 1}; supp = 3) where T <:Grid
         @. weight[k, 1, :, :] = δh(x, xb[k, 1], h) * δh(y+h/2, xb[k, 2], h)
         @. weight[k, 2, :, :] = δh(x+h/2, xb[k, 1], h) * δh(y, xb[k, 2], h)
     end
-    #TODO: finish SetupReg function.
+    
+    "Matrix E^T" 
+    """
+        regT!(q, fb) where T<:Real
 
+    Distributes forces from body points to grid points in a fluid-structure interaction simulation.
 
+    # Arguments
+    - `q: Grid force (flux) array to be updated. It will be modified in place.
+    - `fb`: Body force array. It is reshaped within the function to a matrix of size `(nb, 2)`.
 
+    # Functionality
+    1. Initializes the grid force array `q` to zeros.
+    2. Reshapes the body force array `fb` from a single vector to a matrix with `nb` rows and 2 columns. Each row corresponds to a body point, with columns representing the x- and y-components of the force.
+    3. Splits the grid flux array `q` into its x-component `qx` and y-component `qy`.
+    4. Iterates over each body point to update the grid force components based on the regularization weights.
+    5. Reshapes the body force array back to a single vector.
 
+    # Internal Details
+    - The grid indices around each body point are calculated considering the support size `supp_idx`.
+    - The function uses `@views` to avoid unnecessary array allocations when updating `qx` and `qy`.
+
+    # Returns
+    - Nothing. The function modifies `q` and `fb` in place.
+
+    """
+    function RegT!(q, fb)
+        # Initialize the grid flux array to zeros
+        q .= 0.0 
+
+        # Reshape the body force array from a vector to a matrix (nb x 2)
+        fb = reshape(fb, nb, 2)
+
+        # Split the grid force array into its x and y components
+        qx, qy = grid.splitflux(q)
+
+        # Iterate over each body point
+        for k = 1:nb
+            # Calculate the grid indices around the current body point
+            i = body_idx[k, 1] .+ supp_idx
+            j = body_idx[k, 2] .+ supp_idx
+
+            # Update the x-component of the grid flux
+            #=
+                This line updates the x-component of the grid fluxes
+                by adding the weighted contribution of the x-component of the force at the body point k.
+            =#
+            @views qx[i, j] = qx[i, j] + weight[k, 1, :, :] * fb[k, 1]
+            
+            # Update the y-component of the grid flux
+            #=
+                Similarly, this line updates the y-component of the grid fluxes
+                by adding the weighted contribution of the y-component of the force at the body point k.
+            =#
+            @views qy[i, j] = qy[i, j] + weight[k, 2, :, :] * fb[k, 2]
+        end
+
+        # Reshape the body force array back to a single vector (2*nb elements)
+        fb = reshape(fb, 2*nb, 1)
+        # fb = reshape(fb, nf, 1) # since nf = 2*nb
+
+        return nothing
+    end
+
+    "Matrix E"
+
+    """
+        Reg!(fb, q)
+
+    Computes the forces at body points from the grid forces in a fluid-structure interaction simulation.
+
+    # Arguments
+    - `fb`: Body force array to be updated. It will be modified in place and is reshaped within the function to a matrix of size `(nb, 2)`.
+    - `q`: Grid force (flux) array. It is split within the function into its x-component and y-component.
+
+    # Functionality
+    1. Initializes the body force array `fb` to zeros.
+    2. Reshapes the body force array `fb` from a single vector to a matrix with `nb` rows and 2 columns. Each row corresponds to a body point, with columns representing the x- and y-components of the force.
+    3. Splits the grid force array `q` into its x-component `qx` and y-component `qy`.
+    4. Iterates over each body point to update the body force components based on the regularization weights and the grid forces.
+    5. Reshapes the body force array back to a single vector.
+
+    # Internal Details
+    - The grid indices around each body point are calculated considering the support size `supp_idx`.
+    - The function uses `@views` to avoid unnecessary array allocations when updating `fb`.
+
+    # Returns
+    - Nothing. The function modifies `fb` in place.
+    """
+    function Reg!(fb, q)
+        fb.= 0.0
+        fb = reshape(fb, nb, 2)
+        qx, qy = grid.splitflux(q)
+        for k = 1:nb
+            
+            i = body_idx[k, 1] .+ supp_idx
+            j = body_idx[k, 2] .+ supp_idx
+
+            fb[k, 1] = fb[k, 1] + sum(weight[k, 1, :, :] .* qx)
+            fb[k, 2] = fb[k, 2] + sum(weight[K, 2, :, :] .* qy)
+            
+        end
+
+        fb = reshape(fb, 2*nb, 1)
+        # fb = reshape(fb, nf, 1) # since nf = 2*nb
+        return nothing
+    end
+
+    E = LinearMap(Reg!, RegT!, nf, grid.nq; ismutating = true)
+    return E
 
 end
-
-
-
-
-

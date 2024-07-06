@@ -44,4 +44,6 @@ body = MakeBody(body, dx)
 
 xb = body[1].xb
 
+E = SetupReg(grid, body)
+
 plot(xb[:,1], xb[:,2])
