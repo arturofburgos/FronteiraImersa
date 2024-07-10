@@ -224,3 +224,5 @@ function CurlT(Γ, q, grid, Γwork)
 
     return nothing
 end
+
+function Vort2Flux!(s, q, Γ), 
