@@ -201,7 +201,7 @@ Computes the circulation (or vorticity in 2D) from the grid forces in a fluid-st
 # Returns
 - Nothing. The function modifies `Γ` in place.
 """
-function CurlT(Γ, q, grid, Γwork)
+function CurlT!(Γ, q, grid, Γwork)
     nx = grid.nx
     ny = grid.ny
 
