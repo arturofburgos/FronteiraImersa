@@ -225,4 +225,8 @@ function CurlT(Γ, q, grid, Γwork)
     return nothing
 end
 
-function Vort2Flux!(s, q, Γ), 
+
+# TODO: build Vort2Flux! function. Maybe move from here to it's own julia script. 
+function Vort2Flux!(s, q, Γ, model::IBModel{MultiGrid, <:Body}, ngrids::Int64)
+
+end
