@@ -3,6 +3,7 @@ module FronteiraImersa
 using LinearMaps
 using Plots
 
+include("fluid-operators/include_fluid_operators.jl")
 include("pre-processing/include_pre_processing.jl")
 include("fluid-domain/include_fluid_domain.jl")
 include("structure-domain/include_structure_domain.jl")

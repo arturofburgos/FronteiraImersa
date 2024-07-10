@@ -45,6 +45,19 @@ This function creates a grid based on the provided parameters and returns a `Mul
 6. Predefines constant offsets for indexing boundary conditions (`left`, `right`, `bottom`, `top`).
 7. Returns a `MultiGrid` object initialized with the computed parameters and the `SplitFlux` function.
 
+# Visual representation of:
+
+The values of the constants left, right, bottom, and top are chosen to represent the starting indices for the boundary conditions in a flattened array.
+This allows for easy indexing into the boundary condition array ψbc during the computations in the Curl! function
+
+Left boundary conditions: Stored at indices 1 to ny.
+
+Right boundary conditions: Stored at indices ny + 1 to 2*(ny + 1) - 1.
+
+Bottom boundary conditions: Stored at indices 2*(ny + 1) to 2*(ny + 1) + nx.
+
+Top boundary conditions: Stored at indices 2*(ny + 1) + nx + 1 to 2*(ny + 1) + 2*(nx + 1) - 1.
+
 """
 function MakeGrid(h::Float64, boundary::NTuple{4,Float64}; mg=5::Int64)
     
@@ -88,11 +101,13 @@ function MakeGrid(h::Float64, boundary::NTuple{4,Float64}; mg=5::Int64)
     SplitFlux(q; lev = 1) = reshape(@view(q[1:nu, lev]), nx+1, ny), reshape(@view(q[nu+1:end, lev]), nx, ny+1) # qu, qv
 
     # Predefine constant offsets for indexing boundary conditions
-    # TODO - Still need to understand here, why those values for them - Most likely to understand when dealing with the CURL operator
-    left = 0
+    # In the function definition I have displayed a visual interpretation
+    left = 1 #before left = 0, TODO: check with Nick
     right =  ny+1
-    bottom = 2*(ny+1)
-    top = 2*(ny+1) + nx+1
+    # bottom = 2*(ny+1)
+    # top = 2*(ny+1) + nx+1
+    bottom = 2*ny + 1 # TODO: Check with Nick here if this is right. I think it is.
+    top = 2*ny + nx + 1
 
     return MultiGrid(nx, ny, nΓ, nu, nv, nq, mg, offx, offy, xlen, h, SplitFlux, left, right, bottom, top)
 end
